@@ -1,0 +1,18 @@
+<launch>
+
+  <arg name="uav_name" default="uav1" />
+
+  <node name="cbf_filter_node"
+        pkg="cbf_module"
+        type="cbf_filter_node"
+        output="screen"
+        ns="$(arg uav_name)">
+
+    <remap from="/uav1/cbf_filter_node/odometry" to="/uav1/estimation_manager/odom_main" />
+    <remap from="/uav1/cbf_filter_node/octomap_binary" to="/uav1/octomap_server/octomap_local_binary" />
+    <remap from="/uav1/cbf_filter_node/input_reference" to="/uav1/control_manager/velocity_reference" />
+
+
+  </node>
+
+</launch>
