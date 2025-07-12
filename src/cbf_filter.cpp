@@ -13,7 +13,7 @@ CBFNode::CBFNode(const ros::NodeHandle& nh, const ros::NodeHandle& nhp)
 {
   
   nhp_.param("safe_distance", d_min_,  d_min_);
-  nhp_.param("cbf_lambda",    lambda_, lambda_);
+  nhp_.param("lambda", lambda_, lambda_);
 
   // Subscribers
   sub_pilot_ = nh_.subscribe("input_reference", 1,

@@ -1,3 +1,39 @@
+# CBF parameters
 lambda: 1.0
 safe_distance: 2.0
 esdf_radius: 10.0
+
+# ────── TSDF server configuration ────────────────────────────────────────
+tsdf:
+  # size of each voxel in meters
+  voxel_size:           0.10
+  # number of voxels per side in each block (must be power of two)
+  voxels_per_side:      16
+
+  # how far along each ray to integrate free space
+  max_ray_length:       5.0
+
+  integrator:
+    # turn OFF ray‐based carving to preserve “inertia” of old obstacles
+    voxel_carving_enabled: false
+
+  # how often to update the mesh for RViz (seconds; 0 = manual)
+  update_mesh_every_n_sec: 1.0
+
+# ────── ESDF server configuration ────────────────────────────────────────
+esdf:
+  # how fast (Hz) to update the ESDF after the TSDF changes
+  update_frequency:     10.0
+
+  # publish the ESDF as a PointCloud2 (intensity = distance)
+  publish_esdf_pointcloud: true
+
+  # publish a single horizontal slice (for debugging)
+  publish_esdf_slice:      true
+  slice_level:             0.0
+
+  # also publish the full map as a PointCloud2
+  publish_esdf_map:        true
+
+  # send traver­sability information (optional)
+  publish_traversable:     false

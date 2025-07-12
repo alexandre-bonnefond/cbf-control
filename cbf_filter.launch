@@ -1,57 +1,55 @@
 <launch>
-
   <!-- namespace and mode -->
-  <arg name="UAV_NAME" default="$(optenv UAV_NAME uav1)"/>
-  <arg name="RUN_TYPE" default="$(optenv RUN_TYPE simulation)"/>
+  <arg name="UAV_NAME"  default="$(optenv UAV_NAME uav1)"/>
+  <arg name="RUN_TYPE"  default="$(optenv RUN_TYPE simulation)"/>
 
   <group ns="$(arg UAV_NAME)">
-
-    <!-- 1) TSDF integrator: builds a TSDF map from point-clouds -->
-    <node pkg="voxblox_ros" type="tsdf_server" name="tsdf_server" output="screen">
-      <!-- load any TSDF-specific params under ns "tsdf" -->
-      <rosparam command="load" file="$(find cbf_filter)/config/$(arg RUN_TYPE).yaml" ns="tsdf"/>
-      <!-- remap your lidar/PC topic here if needed -->
-      <!--
-      <remap from="~point_cloud_topic" to="sensor/point_cloud"/>
-      -->
-      <remap from="pointcloud" to="pcl_filter_ouster/points_processed"/>
-    </node>
-
-    <!-- 2) ESDF server: converts TSDF to ESDF incrementally -->
-    <node pkg="voxblox_ros" type="esdf_server" name="esdf_server" output="screen">
-      <!-- load ESDF-specific params under ns "esdf" -->
-      <rosparam command="load" file="$(find cbf_filter)/config/$(arg RUN_TYPE).yaml" ns="esdf"/>
-      <!-- ensure it listens to the TSDF map above -->
-      <!-- (default is /voxblox/tsdf_server/tsdf_map; remap if you changed it) -->
-      <!--
-      <remap from="~tsdf_map" to="tsdf_server/tsdf_map"/>
-      -->
-    </node>
-
-    <!-- 3) Your CBF filter, now using Voxblox ESDF internally -->
-    <node name="cbf_filter_node"
-          pkg="cbf_filter"
-          type="cbf_filter_node"
+    <!-- 1) TSDF integrator: builds a TSDF from your filtered Ouster cloud -->
+    <node pkg="voxblox_ros"
+          type="tsdf_server"
+          name="tsdf_server"
           output="screen">
+      <!-- TSDF params live under the private 'tsdf' namespace -->
+      <rosparam command="load"
+                file="$(find cbf_filter)/config/$(arg RUN_TYPE).yaml"
+                ns="tsdf"/>
+      <!-- pull from your processed Ouster topic -->
+      <remap from="pointcloud"
+             to="livox/points"/>
+    </node>
 
-      <!-- load your sim/real params (safe_distance, cbf_lambda, etc.) -->
+    <!-- 2) ESDF server: converts TSDF → ESDF incrementally -->
+    <node pkg="voxblox_ros"
+          type="esdf_server"
+          name="esdf_server"
+          output="screen">
+      <!-- ESDF params under 'esdf' -->
+      <rosparam command="load"
+                file="$(find cbf_filter)/config/$(arg RUN_TYPE).yaml"
+                ns="esdf"/>
+      <!-- by default, listens to tsdf_server/tsdf_map -->
+    </node>
+
+    <!-- 3) CBF filter: uses Voxblox ESDF output internally -->
+    <node pkg="cbf_filter"
+          type="cbf_filter_node"
+          name="cbf_filter_node"
+          output="screen">
+      <!-- core CBF params -->
       <rosparam command="load"
                 file="$(find cbf_filter)/config/$(arg RUN_TYPE).yaml"/>
 
-      <!-- optional overrides -->
-      <!--
-      <param name="safe_distance" value="2.0"/>
-      <param name="cbf_lambda"    value="1.0"/>
-      -->
-
-      <!-- remap topics just as before -->
-      <remap from="~input_reference"              to="control_manager/velocity_reference"/>
-      <remap from="~odometry"                     to="estimation_manager/odom_main"/>
-      <remap from="~filtered_reference"           to="cbf_filter/filtered_reference"/>
-      <remap from="~cbf_gradient_marker"          to="cbf_filter/gradient_marker"/>
-      <remap from="~cbf_nearest_obstacle_marker"  to="cbf_filter/nearest_obstacle_marker"/>
-
+      <!-- topic remaps -->
+      <remap from="~input_reference"
+             to="control_manager/velocity_reference"/>
+      <remap from="~odometry"
+             to="estimation_manager/odom_main"/>
+      <remap from="~filtered_reference"
+             to="cbf_filter/filtered_reference"/>
+      <remap from="~cbf_gradient_marker"
+             to="cbf_filter/gradient_marker"/>
+      <remap from="~cbf_nearest_obstacle_marker"
+             to="cbf_filter/nearest_obstacle_marker"/>
     </node>
-
   </group>
 </launch>
