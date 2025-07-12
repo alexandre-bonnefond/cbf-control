@@ -1,18 +1,57 @@
 <launch>
 
-  <arg name="uav_name" default="uav1" />
+  <!-- namespace and mode -->
+  <arg name="UAV_NAME" default="$(optenv UAV_NAME uav1)"/>
+  <arg name="RUN_TYPE" default="$(optenv RUN_TYPE simulation)"/>
 
-  <node name="cbf_filter_node"
-        pkg="cbf_module"
-        type="cbf_filter_node"
-        output="screen"
-        ns="$(arg uav_name)">
+  <group ns="$(arg UAV_NAME)">
 
-    <remap from="/uav1/cbf_filter_node/odometry" to="/uav1/estimation_manager/odom_main" />
-    <remap from="/uav1/cbf_filter_node/octomap_binary" to="/uav1/octomap_server/octomap_local_binary" />
-    <remap from="/uav1/cbf_filter_node/input_reference" to="/uav1/control_manager/velocity_reference" />
+    <!-- 1) TSDF integrator: builds a TSDF map from point-clouds -->
+    <node pkg="voxblox_ros" type="tsdf_server" name="tsdf_server" output="screen">
+      <!-- load any TSDF-specific params under ns "tsdf" -->
+      <rosparam command="load" file="$(find cbf_filter)/config/$(arg RUN_TYPE).yaml" ns="tsdf"/>
+      <!-- remap your lidar/PC topic here if needed -->
+      <!--
+      <remap from="~point_cloud_topic" to="sensor/point_cloud"/>
+      -->
+      <remap from="pointcloud" to="pcl_filter_ouster/points_processed"/>
+    </node>
 
+    <!-- 2) ESDF server: converts TSDF to ESDF incrementally -->
+    <node pkg="voxblox_ros" type="esdf_server" name="esdf_server" output="screen">
+      <!-- load ESDF-specific params under ns "esdf" -->
+      <rosparam command="load" file="$(find cbf_filter)/config/$(arg RUN_TYPE).yaml" ns="esdf"/>
+      <!-- ensure it listens to the TSDF map above -->
+      <!-- (default is /voxblox/tsdf_server/tsdf_map; remap if you changed it) -->
+      <!--
+      <remap from="~tsdf_map" to="tsdf_server/tsdf_map"/>
+      -->
+    </node>
 
-  </node>
+    <!-- 3) Your CBF filter, now using Voxblox ESDF internally -->
+    <node name="cbf_filter_node"
+          pkg="cbf_filter"
+          type="cbf_filter_node"
+          output="screen">
 
+      <!-- load your sim/real params (safe_distance, cbf_lambda, etc.) -->
+      <rosparam command="load"
+                file="$(find cbf_filter)/config/$(arg RUN_TYPE).yaml"/>
+
+      <!-- optional overrides -->
+      <!--
+      <param name="safe_distance" value="2.0"/>
+      <param name="cbf_lambda"    value="1.0"/>
+      -->
+
+      <!-- remap topics just as before -->
+      <remap from="~input_reference"              to="control_manager/velocity_reference"/>
+      <remap from="~odometry"                     to="estimation_manager/odom_main"/>
+      <remap from="~filtered_reference"           to="cbf_filter/filtered_reference"/>
+      <remap from="~cbf_gradient_marker"          to="cbf_filter/gradient_marker"/>
+      <remap from="~cbf_nearest_obstacle_marker"  to="cbf_filter/nearest_obstacle_marker"/>
+
+    </node>
+
+  </group>
 </launch>

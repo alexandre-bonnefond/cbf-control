@@ -1,15 +1,13 @@
+// cbf_filter.hpp
 #pragma once
 
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
-#include <octomap_msgs/Octomap.h>
+#include <visualization_msgs/Marker.h>
 #include <mrs_msgs/VelocityReferenceStamped.h>
 
-#include <Eigen/Dense>
-
-namespace octomap {
-  class OcTree;  // forward declaration to avoid full include in header
-}
+#include <voxblox_ros/esdf_server.h>
+#include <Eigen/Core>
 
 namespace cbf_filter
 {
@@ -17,36 +15,41 @@ namespace cbf_filter
 class CBFNode
 {
 public:
-  explicit CBFNode(ros::NodeHandle& nh);
-
-  void pilotCallback(const mrs_msgs::VelocityReferenceStamped::ConstPtr& msg);
-  void odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
-  void octomapCallback(const octomap_msgs::Octomap::ConstPtr& msg);
+  /// @param nh        Public NodeHandle (for topics in the UAV namespace)
+  /// @param nh_private Private NodeHandle (“~”) for loading per-node params
+  CBFNode(const ros::NodeHandle &nh, const ros::NodeHandle &nh_private);
 
 private:
-  // ROS interfaces
-  ros::Subscriber sub_pilot_;
-  ros::Subscriber sub_odom_;
-  ros::Subscriber sub_octomap_;
-  ros::Publisher pub_filtered_;
-  ros::Publisher pub_gradient_marker_;
-  ros::Publisher pub_obstacle_marker_;
+  // ─────── Callbacks ─────────────────────────────────────────────────────
+  void pilotCallback(const mrs_msgs::VelocityReferenceStamped::ConstPtr &msg);
+  void odomCallback (const nav_msgs::Odometry::ConstPtr &msg);
 
-  // State
-  Eigen::Vector3d current_position_;
-  Eigen::Vector3d current_velocity_;
-  mrs_msgs::VelocityReferenceStamped latest_pilot_cmd_;
-
-  bool received_odom_ = false;
-  bool received_cmd_ = false;
-  bool octree_ready_ = false;
-
-  // Octomap
-  std::shared_ptr<octomap::OcTree> octree_;
-  bool queryObstacleDistance(const Eigen::Vector3d& pos, double& dist, Eigen::Vector3d& grad);
-
-  // Main logic
+  // ─────── CBF Processing ─────────────────────────────────────────────────
   void processCBF();
+
+  /// Queries the ESDF for distance & gradient at @p pos.
+  /// @return false if the ESDF isn’t yet ready or the query failed.
+  bool queryObstacleDistance(const Eigen::Vector3d &pos,
+                             double &dist,
+                             Eigen::Vector3d &grad);
+
+  // ─────── ROS Handles ────────────────────────────────────────────────────
+  ros::NodeHandle   nh_, nhp_;
+  ros::Subscriber   sub_pilot_, sub_odom_;
+  ros::Publisher    pub_filtered_, pub_grad_marker_, pub_obs_marker_;
+
+  // ─────── State ──────────────────────────────────────────────────────────
+  Eigen::Vector3d                     current_position_{0, 0, 0};
+  mrs_msgs::VelocityReferenceStamped latest_pilot_cmd_;
+  bool                                received_odom_{false};
+  bool                                received_cmd_{false};
+
+  // ─────── Parameters ─────────────────────────────────────────────────────
+  double d_min_{2.0};   ///< minimum safety distance [m]
+  double lambda_{1.0};  ///< CBF gain [1/s]
+
+  // ─────── Voxblox ESDF ───────────────────────────────────────────────────
+  voxblox::EsdfServer esdf_server_;
 };
 
-}
+}  // namespace cbf_filter
