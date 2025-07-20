@@ -1,0 +1,4 @@
+# Control‐Barrier Filter parameters
+lambda:         1.0     # CBF gain [1/s]
+safe_distance:  12.0     # [m]
+esdf_radius:    10.0    # [m], how far around the drone to consider

@@ -2,7 +2,7 @@
 <package format="2">
   <name>cbf_filter</name>
   <version>0.1.0</version>
-  <description>Control-Barrier-Function safety filter for UAV pilot inputs, using OctoMap + ESDF.</description>
+  <description>Control-Barrier-Function safety filter for UAV pilot inputs, using Voxblox ESDF.</description>
 
   <maintainer email="123@456.com">Alex B.</maintainer>
   <license>BSD</license>

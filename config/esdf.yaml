@@ -1,0 +1,17 @@
+# ─── TSDF parameters (esdf_server integrates these) ────────────────────────
+voxel_size:          0.10      # [m]
+voxels_per_side:     16
+max_ray_length:      5.0
+integrator:
+  voxel_carving_enabled: true   # keep obstacle inertia
+
+# ─── ESDF parameters ───────────────────────────────────────────────────────
+update_frequency:    10.0        # [Hz]
+
+publish_pointclouds: true        # --> /esdf_pointcloud
+publish_esdf_map:    true
+publish_slice:       true
+slice_level:         0.0
+
+# coordinate frame the map lives in
+world_frame:         uav1/fcu
